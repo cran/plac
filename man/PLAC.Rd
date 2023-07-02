@@ -4,9 +4,18 @@
 \alias{PLAC}
 \title{Calculate the PLAC estimator when a time-dependent indicator presents}
 \usage{
-PLAC(ltrc.formula, ltrc.data, id.var = "ID", td.var = NULL,
-  td.type = "none", t.jump = NULL, init.val = NULL, max.iter = 100,
-  print.result = TRUE, ...)
+PLAC(
+  ltrc.formula,
+  ltrc.data,
+  id.var = "ID",
+  td.type = "none",
+  td.var = NULL,
+  t.jump = NULL,
+  init.val = NULL,
+  max.iter = 100,
+  print.result = TRUE,
+  ...
+)
 }
 \arguments{
 \item{ltrc.formula}{a formula of of the form \code{Surv(A, Y, D) ~ Z}, where
@@ -16,15 +25,15 @@ PLAC(ltrc.formula, ltrc.data, id.var = "ID", td.var = NULL,
 time-invariate covariates and the jump times for the time-depnencent
 covariate.}
 
-\item{id.var}{a name of the subject id in \code{data}.}
-
-\item{td.var}{a name of the time-dependent covariate in the output.}
+\item{id.var}{the name of the subject id in \code{data}.}
 
 \item{td.type}{the type of the time-dependent covariate. Either one of
 \code{c("none", "independent", "post-trunc", "pre-post-trunc")}. See
 Details.}
 
-\item{t.jump}{a name of the jump time variable in \code{data}.}
+\item{td.var}{the name of the time-dependent covariate in the output.}
+
+\item{t.jump}{the name of the jump time variable in \code{data}.}
 
 \item{init.val}{a list of the initial values of the coefficients and the
 baseline hazard function for the PLAC estimator.}
@@ -38,64 +47,56 @@ estiamtes should be printed out.}
 }
 \value{
 a list of model fitting results for both conditional approach and the
-  PLAC estimators.
-  \describe{
-  \item{\code{Event.Time}}{Ordered distinct observed event times}
-  \item{\code{b}}{Regression coefficients estiamtes}
-  \item{\code{se.b}}{Model-based SEs of the regression coefficients
-  estiamtes}
-  \item{\code{H0}}{Estimated cumulative baseline hazard function}
-  \item{\code{se.H0}}{Model-based SEs of the estimated cumulative baseline
-  hazard function}
-  \item{\code{sandwich}}{The sandwich estimator for (beta,
-  lambda)}
-  \item{\code{k}}{The number of iteration for used for the PLAC
-  estimator}
-  \item{\code{summ}}{A brief summary of the covariates effects}
-  }
+PLAC estimators.
+\describe{
+\item{\code{Event.Time}}{Ordered distinct observed event times}
+\item{\code{b}}{Regression coefficients estiamtes}
+\item{\code{se.b}}{Model-based SEs of the regression coefficients
+estiamtes}
+\item{\code{H0}}{Estimated cumulative baseline hazard function}
+\item{\code{se.H0}}{Model-based SEs of the estimated cumulative baseline
+hazard function}
+\item{\code{sandwich}}{The sandwich estimator for (beta,
+lambda)}
+\item{\code{k}}{The number of iteration for used for the PLAC
+estimator}
+\item{\code{summ}}{A brief summary of the covariates effects}
+}
 }
 \description{
 Both a conditional approach Cox model and a pairwise likelihood augmented
 estimator are fitted and the corresponding results are returned in a list.
 }
 \details{
-\code{ltrc.formula} should have the same form as used in \code{coxph()}; e.g., \code{Surv(A, Y, D) ~ Z1 + Z2}.
-  where \code{A} is the truncation time (\code{tstart}), \code{Y} is the
-  survival time (\code{tstop}) and \code{D} is the status indicator
-  (\code{event}). \code{td.type} is used to determine which \code{C++}
-  function will be invoked: either \code{PLAC_TI} (if \code{td.type =
-  "none"}), \code{PLAC_TD} (if \code{td.type = "independent"}) or
-  \code{PLAC_TDR}) (if \code{td.type \%in\% c("post-trunc",
-  "pre-post-trunc")}). For \code{td.type = "post-trunc"}, the pre-truncation
-  values for the time-dependent covariate will be set to be zero for all
-  subjects.
+\code{ltrc.formula} should have the same form as used in
+\code{coxph()}; e.g., \code{Surv(A, Y, D) ~ Z1 + Z2}. where \code{(A, Y,
+  D)} are the truncation time, the survival time  and the status indicator
+(\code{(tstart, tstop, event)} as in \code{\link[survival]{coxph}}).
+\code{td.type} is used to determine which \code{C++} function will be
+invoked: either \code{PLAC_TI} (if \code{td.type = "none"}), \code{PLAC_TD}
+(if \code{td.type = "independent"}) or \code{PLAC_TDR}) (if \code{td.type
+  \%in\% c("post-trunc", "pre-post-trunc")}). For \code{td.type =
+  "post-trunc"}, the pre-truncation values for the time-dependent covariate
+will be set to be zero for all subjects.
 }
 \examples{
 # When only time-invariant covariates are involved
-dat1 = sim.ltrc(n = 50)$dat
+dat1 = sim.ltrc(n = 40)$dat
 PLAC(ltrc.formula = Surv(As, Ys, Ds) ~ Z1 + Z2,
      ltrc.data = dat1, td.type = "none")
 # When there is a time-dependent covariate that is independent of the truncation time
-dat2 = sim.ltrc(n = 50, time.dep = TRUE,
+dat2 = sim.ltrc(n = 40, time.dep = TRUE,
                distr.A = "binomial", p.A = 0.8, Cmax = 5)$dat
 PLAC(ltrc.formula = Surv(As, Ys, Ds) ~ Z,
      ltrc.data = dat2, td.type = "independent",
      td.var = "Zv", t.jump = "zeta")
 # When there is a time-dependent covariate that depends on the truncation time
-dat3 = sim.ltrc(n = 50, time.dep = TRUE, Zv.depA = TRUE, Cmax = 5)$dat
+dat3 = sim.ltrc(n = 40, time.dep = TRUE, Zv.depA = TRUE, Cmax = 5)$dat
 PLAC(ltrc.formula = Surv(As, Ys, Ds) ~ Z,
      ltrc.data = dat3, td.type = "post-trunc",
      td.var = "Zv", t.jump = "zeta")
 
 }
 \references{
-Wu, F. Kim, S. and Li, Y. "A Pairwise Likelihood Augmented
-  Estimator for Left-Truncated Data with Time-Dependent Covariates."
-  (\emph{in preparation})
-
-Wu, F., Kim, S., Qin, J., Saran, R. and Li, Y. (2015) "A
-  Pairwise-Likelihood Augmented Estimator for the Cox Model Under
-  Left-Truncation." (Submitted to \emph{Journal of American Statistical
-  Association}.) \url{http://biostats.bepress.com/umichbiostat/paper118/}
+Wu, F., Kim, S., Qin, J., Saran, R., & Li, Y. (2018). A pairwise likelihood augmented Cox estimator for left‐truncated data. Biometrics, 74(1), 100-108.
 }
-

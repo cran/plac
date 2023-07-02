@@ -4,15 +4,34 @@
 \alias{sim.ltrc}
 \title{Generate left-truncated (and right-cencored) data from the Cox model.}
 \usage{
-sim.ltrc(n = 200, b = c(1, 1), time.dep = FALSE, Zv.depA = FALSE,
-  distr.T = "weibull", shape.T = 2, scale.T = 1, meanlog.T = 0,
-  sdlog.T = 1, distr.A = "weibull", shape.A = 1, scale.A = 5,
-  p.A = 0.3, Cmax = Inf, fix.seed = NULL)
+sim.ltrc(
+  n = 200,
+  b = c(1, 1),
+  Z.type = c("C", "B"),
+  time.dep = FALSE,
+  Zv.depA = FALSE,
+  A.depZ = FALSE,
+  distr.T = "weibull",
+  shape.T = 2,
+  scale.T = 1,
+  meanlog.T = 0,
+  sdlog.T = 1,
+  distr.A = "weibull",
+  shape.A = 1,
+  scale.A = 5,
+  p.A = 0.3,
+  b.A = c(0, 0),
+  Cmax = Inf,
+  fix.seed = NULL
+)
 }
 \arguments{
 \item{n}{the sample size.}
 
 \item{b}{a numeric vector for true regression coefficients.}
+
+\item{Z.type}{a vector indicating the type of the time-invariant covariates;
+\code{"C"} = uniform[-1, 1], \code{"B"} = binary(0.5).}
 
 \item{time.dep}{logical, whether there is the time-dependent covariate (only
 one indicator function Zv = I(t >= zeta) is supported); the default is
@@ -21,6 +40,9 @@ FALSE.}
 \item{Zv.depA}{logical, whether the time-dependent covariate \code{Zv}
 depends on A^* (the only form supported is Zv = I(t >= zeta + A^*)); the
 default is FALSE.}
+
+\item{A.depZ}{logical, whether the truncation times depends on the
+covariate Z.}
 
 \item{distr.T}{the baseline survival time (T*) distribution ("exp" or
 "weibull").}
@@ -44,17 +66,20 @@ these are provided, \code{"unif"} will be used.}
 
 \item{p.A}{the success probability for the binomial distribution of A*.}
 
+\item{b.A}{the vector of coefficients for the model of A on the covariates.}
+
 \item{Cmax}{the upper bound of the uniform distribution of the censoring time
 (C).}
 
 \item{fix.seed}{an optional random seed for simulation.}
 }
 \value{
-a list with a data.frame containing the observed survival times
-  (\code{Ys}), the observed truncation times (\code{As}), the event indicator
-  (\code{Ds}) and the covariates (\code{Zs}); a vector of certain quantiles
-  of Ys (\code{taus}); the censoring proportion (\code{PC}) and the
-  truncation proportiona (\code{PT}).
+a list with a data.frame containing the biased sample of
+survival times (\code{Ys}) and truncation times (\code{As}),
+the event indicator (\code{Ds}) and the covariates (\code{Zs});
+a vector of certain quantiles of Ys (\code{taus});
+the censoring proportion (\code{PC}) and the truncation proportion
+(\code{PT}).
 }
 \description{
 Various baseline survival functions and truncation distribution are
@@ -63,14 +88,13 @@ available. Censoring rate can be designated through tuning the parameter
 }
 \examples{
 # With time-invariant covariates only
-sim1 = sim.ltrc(n = 100)
+sim1 = sim.ltrc(n = 40)
 head(sim1$dat)
 # With one time-dependent covariate
-sim2 = sim.ltrc(n = 100, time.dep = TRUE,
+sim2 = sim.ltrc(n = 40, time.dep = TRUE,
          distr.A = "binomial", p.A = 0.8, Cmax = 5)
 head(sim2$dat)
 # With one time-dependent covariate with dependence on the truncation time
-sim3 = sim.ltrc(n = 100, time.dep = TRUE, Zv.depA = TRUE, Cmax = 5)
+sim3 = sim.ltrc(n = 40, time.dep = TRUE, Zv.depA = TRUE, Cmax = 5)
 head(sim3$dat)
 }
-

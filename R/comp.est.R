@@ -7,34 +7,34 @@
 #' @param ltrc.data a data.frame of the LTRC dataset including the responses,
 #'   time-invariate covariates and the jump times for the time-depnencent
 #'   covariate.
-#' @param id.var a name of the subject id in \code{data}.
-#' @param td.var  a name of the time-dependent covariate in the output.
+#' @param id.var the name of the subject id in \code{data}.
 #' @param td.type the type of the time-dependent covariate. Either one of
 #'   \code{c("none", "independent", "post-trunc", "pre-post-trunc")}. See
 #'   Details.
-#' @param t.jump a name of the jump time variable in \code{data}.
+#' @param td.var the name of the time-dependent covariate in the output.
+#' @param t.jump the name of the jump time variable in \code{data}.
 #' @param init.val a list of the initial values of the coefficients and the
 #'   baseline hazard function for the PLAC estimator.
 #' @param max.iter the maximal number of iteration for the PLAC estimator
 #' @param print.result logical, if a brief summary of the regression coefficient
 #'   estiamtes should be printed out.
 #' @param ... other arguments
-#' @useDynLib plac
+#' @useDynLib plac, .registration = TRUE
 #' @importFrom stats as.formula coef model.frame model.matrix model.response
 #'   model.matrix pnorm
 #' @importFrom Rcpp sourceCpp
 #' @importFrom survival Surv tmerge coxph
 #'
-#' @details \code{ltrc.formula} should have the same form as used in \code{coxph()}; e.g., \code{Surv(A, Y, D) ~ Z1 + Z2}.
-#'   where \code{A} is the truncation time (\code{tstart}), \code{Y} is the
-#'   survival time (\code{tstop}) and \code{D} is the status indicator
-#'   (\code{event}). \code{td.type} is used to determine which \code{C++}
-#'   function will be invoked: either \code{PLAC_TI} (if \code{td.type =
-#'   "none"}), \code{PLAC_TD} (if \code{td.type = "independent"}) or
-#'   \code{PLAC_TDR}) (if \code{td.type \%in\% c("post-trunc",
-#'   "pre-post-trunc")}). For \code{td.type = "post-trunc"}, the pre-truncation
-#'   values for the time-dependent covariate will be set to be zero for all
-#'   subjects.
+#' @details \code{ltrc.formula} should have the same form as used in
+#'   \code{coxph()}; e.g., \code{Surv(A, Y, D) ~ Z1 + Z2}. where \code{(A, Y,
+#'   D)} are the truncation time, the survival time  and the status indicator
+#'   (\code{(tstart, tstop, event)} as in \code{\link[survival]{coxph}}).
+#'   \code{td.type} is used to determine which \code{C++} function will be
+#'   invoked: either \code{PLAC_TI} (if \code{td.type = "none"}), \code{PLAC_TD}
+#'   (if \code{td.type = "independent"}) or \code{PLAC_TDR}) (if \code{td.type
+#'   \%in\% c("post-trunc", "pre-post-trunc")}). For \code{td.type =
+#'   "post-trunc"}, the pre-truncation values for the time-dependent covariate
+#'   will be set to be zero for all subjects.
 #'
 #' @return a list of model fitting results for both conditional approach and the
 #'   PLAC estimators.
@@ -52,43 +52,37 @@
 #'   estimator}
 #'   \item{\code{summ}}{A brief summary of the covariates effects}
 #'   }
-#' @references Wu, F. Kim, S. and Li, Y. "A Pairwise Likelihood Augmented
-#'   Estimator for Left-Truncated Data with Time-Dependent Covariates."
-#'   (\emph{in preparation})
-#' @references Wu, F., Kim, S., Qin, J., Saran, R. and Li, Y. (2015) "A
-#'   Pairwise-Likelihood Augmented Estimator for the Cox Model Under
-#'   Left-Truncation." (Submitted to \emph{Journal of American Statistical
-#'   Association}.) \url{http://biostats.bepress.com/umichbiostat/paper118/}
+#' @references Wu, F., Kim, S., Qin, J., Saran, R., & Li, Y. (2018). A pairwise likelihood augmented Cox estimator for left‐truncated data. Biometrics, 74(1), 100-108.
 #' @examples
 #' # When only time-invariant covariates are involved
-#' dat1 = sim.ltrc(n = 50)$dat
+#' dat1 = sim.ltrc(n = 40)$dat
 #' PLAC(ltrc.formula = Surv(As, Ys, Ds) ~ Z1 + Z2,
 #'      ltrc.data = dat1, td.type = "none")
 #' # When there is a time-dependent covariate that is independent of the truncation time
-#' dat2 = sim.ltrc(n = 50, time.dep = TRUE,
+#' dat2 = sim.ltrc(n = 40, time.dep = TRUE,
 #'                distr.A = "binomial", p.A = 0.8, Cmax = 5)$dat
 #' PLAC(ltrc.formula = Surv(As, Ys, Ds) ~ Z,
 #'      ltrc.data = dat2, td.type = "independent",
 #'      td.var = "Zv", t.jump = "zeta")
 #' # When there is a time-dependent covariate that depends on the truncation time
-#' dat3 = sim.ltrc(n = 50, time.dep = TRUE, Zv.depA = TRUE, Cmax = 5)$dat
+#' dat3 = sim.ltrc(n = 40, time.dep = TRUE, Zv.depA = TRUE, Cmax = 5)$dat
 #' PLAC(ltrc.formula = Surv(As, Ys, Ds) ~ Z,
 #'      ltrc.data = dat3, td.type = "post-trunc",
 #'      td.var = "Zv", t.jump = "zeta")
 #'
 #' @export
 PLAC = function(ltrc.formula, ltrc.data, id.var = "ID",
-                td.var = NULL, td.type = "none", t.jump = NULL,
+                td.type = "none", td.var = NULL, t.jump = NULL,
                 init.val = NULL, max.iter = 100, print.result = TRUE, ...){
   if( !inherits(ltrc.formula, "formula") ) stop("A formula of the form 'Surv (A, Y, D) ~ Z' is required!")
   # grep the model.frame for later use
   mf = model.frame(formula = ltrc.formula, data = ltrc.data)
   # prepare the response and time-invariant covariate matrix
   X = as.matrix(model.response(mf))
-  resp = gsub("Surv|\\(|\\)| ","",unlist(strsplit(names(mf)[1],",")))
+  resp = gsub("Surv|\\(|\\)| ", "", unlist(strsplit(names(mf)[1], ",")))
   colnames(X) = resp
   n = nrow(X)
-  W = unique(X[X[,3] == 1, 2])
+  W = unique(X[X[ , 3] == 1, 2])
   m = length(W)
   # at-risk processes
   Ind1 = SgInd(X, W)
@@ -187,9 +181,9 @@ PLAC = function(ltrc.formula, ltrc.data, id.var = "ID",
   se.H0 = cbind(Cox = se.H0.cox, PLAC = plac.fit$se.H0.hat)
 
   rslt = cbind(est.Cox = b[ , 1], se.Cox = se.b[ , 1],
-               p.Cox = pnorm(2 * abs(b[ , 1] / se.b[ , 1]), lower.tail = FALSE),
+               p.Cox = 2 * pnorm(abs(b[ , 1] / se.b[ , 1]), lower.tail = FALSE),
                est.PLAC = b[ , 2], se.PLAC = se.b[ , 2],
-               p.PLAC = pnorm(2 * abs(b[ , 2] / se.b[ , 2]), lower.tail = FALSE))
+               p.PLAC = 2 * pnorm(abs(b[ , 2] / se.b[ , 2]), lower.tail = FALSE))
   rslt = round(rslt, 3)
   if( print.result ){
     cat("Coefficient Estimates:\n")
@@ -211,7 +205,7 @@ PLAC = function(ltrc.formula, ltrc.data, id.var = "ID",
 #' @importFrom stats stepfun
 #' @return a list containing the estiamtes and SEs of Lambda(t) for both conditional apporach and the PLAC estimator.
 #' @examples
-#' dat1 = sim.ltrc(n = 100)$dat
+#' dat1 = sim.ltrc(n = 50)$dat
 #' est = PLAC(ltrc.formula = Surv(As, Ys, Ds) ~ Z1 + Z2,
 #'      ltrc.data = dat1, td.type = "none")
 #' H = cum.haz(est, t.eval = seq(0.1, 0.9, 0.1))
